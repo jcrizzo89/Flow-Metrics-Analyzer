@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Metrics Analyzer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f9fafb;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        .description {
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 48px;
+            text-center;
+            margin-bottom: 24px;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+        }
+
+        .upload-area.dragover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            color: #9ca3af;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-text {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .upload-subtext {
+            color: #6b7280;
+        }
+
+        .custom-patterns {
+            background-color: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .custom-patterns h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .pattern-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr auto;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .input {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2563eb;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-success {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .pattern-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 8px;
+        }
+
+        .pattern-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 2fr;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 48px;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .summary-item {
+            background: #f9fafb;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .summary-title {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+
+        .summary-platform {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .summary-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-line {
+            font-size: 14px;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .alert-warning {
+            background-color: #fef3cd;
+            border: 1px solid #fbbf24;
+            color: #92400e;
+        }
+
+        .alert-error {
+            background-color: #fee2e2;
+            border: 1px solid #f87171;
+            color: #991b1b;
+        }
+
+        .alert-success {
+            background-color: #d1fae5;
+            border: 1px solid #34d399;
+            color: #065f46;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: #eff6ff;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1e40af;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .table th,
+        .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        .table th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .ticket {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .ticket-header {
+            display: flex;
+            justify-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .ticket-title {
+            font-weight: 600;
+            color: #374151;
+            flex: 1;
+        }
+
+        .priority-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .priority-high {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .priority-medium {
+            background-color: #fef3cd;
+            color: #92400e;
+        }
+
+        .priority-low {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .ticket-meta {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .ticket-description {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90%;
+            margin: 5% auto;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-between;
+            align-items: center;
+            padding: 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .modal-body {
+            padding: 24px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-sm {
+            font-size: 14px;
+        }
+
+        .text-lg {
+            font-size: 1.125rem;
+        }
+
+        .font-medium {
+            font-weight: 500;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        .mb-2 {
+            margin-bottom: 8px;
+        }
+
+        .mb-4 {
+            margin-bottom: 16px;
+        }
+
+        .mt-4 {
+            margin-top: 16px;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .gap-2 {
+            gap: 8px;
+        }
+
+        .gap-4 {
+            gap: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Card -->
+        <div class="card">
+            <div class="header">
+                <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                </svg>
+                <h1>Flow Metrics Analyzer</h1>
+            </div>
+            <p class="description">
+                Analiza archivos Excel de métricas Flow para detectar inconsistencias en módulos por plataforma
+            </p>
+
+            <!-- Upload Area -->
+            <div class="upload-area" id="uploadArea">
+                <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+                <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls">
+                <div class="upload-text" id="uploadText">Selecciona un archivo Excel</div>
+                <p class="upload-subtext">Formatos soportados: .xlsx, .xls</p>
+            </div>
+
+            <!-- Custom Patterns -->
+            <div class="custom-patterns">
+                <h3>Patrones Personalizados</h3>
+                
+                <!-- Add Pattern Form -->
+                <div class="pattern-form">
+                    <input type="text" id="newPatternText" class="input" placeholder="Patrón (ej: rosario)">
+                    <input type="text" id="newPatternType" class="input" placeholder="Tipo (ej: test-endpoint)">
+                    <input type="text" id="newPatternDesc" class="input" placeholder="Descripción">
+                    <button class="btn btn-primary" onclick="addCustomPattern()">
+                        <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                        </svg>
+                        Agregar
+                    </button>
+                </div>
+
+                <!-- Pattern List -->
+                <div id="patternList"></div>
+            </div>
+
+            <!-- Loading -->
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Analizando archivo...</p>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="hidden">
+            <!-- Summary -->
+            <div class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">Resumen del Análisis</h2>
+                    <div class="flex gap-2">
+                        <button class="btn btn-success" onclick="exportResults()">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                            </svg>
+                            Exportar Excel
+                        </button>
+                        <button class="btn btn-secondary" onclick="showBulkTickets()">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                            </svg>
+                            Ver Todos los Tickets
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="summaryGrid" class="summary-grid"></div>
+            </div>
+
+            <!-- Sheet Results -->
+            <div id="sheetResults"></div>
+        </div>
+
+        <!-- Bulk Tickets Modal -->
+        <div id="bulkModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="text-lg font-bold">Todos los Tickets JIRA</h2>
+                    <div class="flex gap-2">
+                        <button class="btn btn-primary" onclick="copyBulkTickets()">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5Z" />
+                            </svg>
+                            Copiar Todo
+                        </button>
+                        <button class="btn btn-secondary" onclick="closeBulkModal()">
+                            <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-success mb-4">
+                        <p class="text-sm">
+                            📋 Formato listo para copiar y pegar en JIRA. 
+                            Total: <strong id="totalTickets">0</strong> tickets generados.
+                        </p>
+                    </div>
+                    <div class="ticket-description" id="bulkTicketsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let analysisData = null;
+        let customPatterns = [
+            { pattern: 'rosario', type: 'test-endpoint', description: 'Endpoint de testing no productivo' }
+        ];
+
+        // Enhanced inconsistency patterns
+        const inconsistencyPatterns = {
+            language: [
+                { es: 'perfiles', en: 'profiles' },
+                { es: 'busqueda', en: 'search' },
+                { es: 'suscripciones', en: 'subscriptions' },
+                { es: 'peliculas', en: 'movies' },
+                { es: 'favoritos', en: 'favorites' },
+                { es: 'infantiles', en: 'kids' },
+                { es: 'micuenta', en: 'my-account' },
+                { es: 'continuar-viendo', en: 'continue-watching' },
+                { es: 'mis-contenidos', en: 'my-content' },
+                { es: 'guia-de-tv', en: 'tv-guide' },
+                { es: 'filtro', en: 'filter' }
+            ],
+            caseIssues: /^[A-Z]/,
+            urlEncoding: /%[0-9A-F]{2}/i,
+            systemFiles: /\.(html?|css|js|png|jpg|gif|svg|txt)$/i,
+            problematic: /^(null|undefined|""|\s*|v|i|dyn)$/i,
+            typos: [
+                { wrong: 'dineyplus', correct: 'disney-plus' },
+                { wrong: 'guia-de-t', correct: 'tv-guide' },
+                { wrong: 'perfileshttps:', correct: 'profiles' },
+                { wrong: 'musicapara%20meditar', correct: 'music' },
+                { wrong: 'musica%20de%20los%2080', correct: 'music' },
+                // Spell checking
+                { wrong: 'profils', correct: 'profiles' },
+                { wrong: 'searhc', correct: 'search' },
+                { wrong: 'playr', correct: 'player' },
+                { wrong: 'logn', correct: 'login' },
+                { wrong: 'hoem', correct: 'home' }
+            ],
+            whitespace: /^\s+|\s+$/,
+            urlContamination: /https?:|www\.|\.com/i
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEventListeners();
+            renderPatternList();
+        });
+
+        function setupEventListeners() {
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+
+            fileInput.addEventListener('change', handleFileSelect);
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            document.getElementById('uploadText').textContent = file.name;
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('results').classList.add('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    analyzeWorkbook(workbook);
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    alert('Error al leer el archivo. Asegúrate de que sea un archivo Excel válido.');
+                } finally {
+                    document.getElementById('loading').classList.add('hidden');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function analyzeWorkbook(workbook) {
+            const results = {};
+
+            workbook.SheetNames.forEach(sheetName => {
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                if (jsonData.length === 0 || !jsonData[0]) {
+                    results[sheetName] = {
+                        platform: extractPlatform(sheetName),
+                        type: extractType(sheetName),
+                        isEmpty: true,
+                        message: 'Hoja vacía - Falta de datos detectada'
+                    };
+                    return;
+                }
+
+                const headers = jsonData[0];
+                const rows = jsonData.slice(1);
+                results[sheetName] = analyzeSheet(sheetName, headers, rows);
+            });
+
+            analysisData = results;
+            renderResults();
+        }
+
+        function extractPlatform(sheetName) {
+            if (sheetName.includes('WEB')) return 'WEB';
+            if (sheetName.includes('STV')) return 'STV';
+            if (sheetName.includes('iOS')) return 'iOS';
+            if (sheetName.includes('ANDROID')) return 'ANDROID';
+            return 'UNKNOWN';
+        }
+
+        function extractType(sheetName) {
+            if (sheetName.includes('APICALL')) return 'APICALL';
+            if (sheetName.includes('HOST-PATH')) return 'HOST-PATH';
+            return 'OTHER';
+        }
+
+        function analyzeSheet(sheetName, headers, rows) {
+            const platform = extractPlatform(sheetName);
+            const type = extractType(sheetName);
+
+            const moduleIndex = headers.findIndex(h => 
+                h && h.toString().toLowerCase().includes('modulo')
+            );
+
+            if (moduleIndex === -1) {
+                return {
+                    platform,
+                    type,
+                    isEmpty: false,
+                    hasModuleColumn: false,
+                    message: 'No se encontró columna MODULO en esta hoja'
+                };
+            }
+
+            const modules = rows
+                .map(row => row[moduleIndex])
+                .filter(module => module !== undefined && module !== null)
+                .map(module => module.toString().trim());
+
+            const uniqueModules = [...new Set(modules)];
+            const moduleCounts = {};
+
+            modules.forEach(module => {
+                moduleCounts[module] = (moduleCounts[module] || 0) + 1;
+            });
+
+            const inconsistencies = analyzeInconsistencies(uniqueModules, moduleCounts);
+            const jiraTickets = generateJiraTickets(platform, inconsistencies);
+
+            return {
+                platform,
+                type,
+                isEmpty: false,
+                hasModuleColumn: true,
+                totalModules: modules.length,
+                uniqueModules: uniqueModules.length,
+                modules: uniqueModules,
+                moduleCounts,
+                inconsistencies,
+                jiraTickets
+            };
+        }
+
+        function analyzeInconsistencies(modules, counts) {
+            const issues = {
+                critical: [],
+                language: [],
+                caseIssues: [],
+                typos: [],
+                custom: [],
+                urlEncoding: [],
+                systemFiles: [],
+                whitespace: [],
+                urlContamination: []
+            };
+
+            modules.forEach(module => {
+                const count = counts[module];
+
+                // Critical values
+                if (!module || module === '' || inconsistencyPatterns.problematic.test(module)) {
+                    issues.critical.push({
+                        current: module || '(vacío)',
+                        suggested: 'unknown',
+                        count,
+                        reason: 'Valor crítico que debe ser investigado'
+                    });
+                }
+
+                // Whitespace issues
+                if (module && inconsistencyPatterns.whitespace.test(module)) {
+                    issues.whitespace.push({
+                        current: module,
+                        suggested: module.trim(),
+                        count,
+                        reason: 'Espacios al inicio o final'
+                    });
+                }
+
+                // URL contamination
+                if (module && inconsistencyPatterns.urlContamination.test(module)) {
+                    issues.urlContamination.push({
+                        current: module,
+                        suggested: 'unknown',
+                        count,
+                        reason: 'Contaminación de URL detectada'
+                    });
+                }
+
+                // Language
+                inconsistencyPatterns.language.forEach(pair => {
+                    if (module === pair.es) {
+                        issues.language.push({
+                            current: module,
+                            suggested: pair.en,
+                            count,
+                            reason: 'Unificar idioma: español → inglés'
+                        });
+                    }
+                });
+
+                // Case issues
+                if (module && inconsistencyPatterns.caseIssues.test(module)) {
+                    issues.caseIssues.push({
+                        current: module,
+                        suggested: module.toLowerCase(),
+                        count,
+                        reason: 'Normalizar a minúsculas'
+                    });
+                }
+
+                // Typos and spell checking
+                inconsistencyPatterns.typos.forEach(typo => {
+                    if (module === typo.wrong) {
+                        issues.typos.push({
+                            current: module,
+                            suggested: typo.correct,
+                            count,
+                            reason: 'Corregir error conocido'
+                        });
+                    }
+                });
+
+                // URL Encoding
+                if (module && inconsistencyPatterns.urlEncoding.test(module)) {
+                    issues.urlEncoding.push({
+                        current: module,
+                        suggested: 'unknown',
+                        count,
+                        reason: 'Contiene caracteres URL encoded'
+                    });
+                }
+
+                // System files
+                if (module && inconsistencyPatterns.systemFiles.test(module)) {
+                    issues.systemFiles.push({
+                        current: module,
+                        suggested: 'unknown',
+                        count,
+                        reason: 'Archivo del sistema capturado como módulo'
+                    });
+                }
+
+                // Custom patterns
+                customPatterns.forEach(pattern => {
+                    if (module && module.toLowerCase().includes(pattern.pattern.toLowerCase())) {
+                        issues.custom.push({
+                            current: module,
+                            suggested: 'unknown',
+                            count,
+                            reason: pattern.description,
+                            type: pattern.type
+                        });
+                    }
+                });
+            });
+
+            return issues;
+        }
+
+        function generateJiraTickets(platform, inconsistencies) {
+            const tickets = [];
+
+            Object.entries(inconsistencies).forEach(([category, issues]) => {
+                if (issues.length > 0) {
+                    const priority = category === 'critical' ? 'High' : 
+                                    category === 'typos' ? 'High' : 'Medium';
+
+                    const totalAffected = issues.reduce((sum, issue) => sum + issue.count, 0);
+
+                    tickets.push({
+                        title: `${platform} - Metrics - Module - ${getCategoryTitle(category)}`,
+                        description: generateTicketDescription(platform, category, issues, totalAffected),
+                        priority,
+                        component: platform,
+                        category,
+                        affectedCount: totalAffected,
+                        issuesCount: issues.length
+                    });
+                }
+            });
+
+            return tickets;
+        }
+
+        function getCategoryTitle(category) {
+            const titles = {
+                critical: 'Corregir valores críticos',
+                language: 'Unificar idioma (ES→EN)',
+                caseIssues: 'Normalizar mayúsculas/minúsculas',
+                typos: 'Corregir errores y contaminaciones',
+                custom: 'Revisar patrones personalizados',
+                urlEncoding: 'Filtrar URL encoding',
+                systemFiles: 'Filtrar archivos del sistema',
+                whitespace: 'Limpiar espacios en blanco',
+                urlContamination: 'Corregir contaminación de URLs'
+            };
+            return titles[category] || 'Normalizar inconsistencias';
+        }
+
+        function generateTicketDescription(platform, category, issues, totalAffected) {
+            const baseUrl = platform === 'WEB' ? 'https://portal.app.flow.com.ar' : 'Flow App';
+            
+            const examples = issues.map((issue, index) => 
+                `${index + 1}. **${issue.current}** → **${issue.suggested}** (${issue.count} ocurrencias)
+   - Problema: ${issue.reason}
+   - URL típica: \`${baseUrl}/${issue.current}\``
+            ).join('\n\n');
+
+            const priority = category === 'critical' || category === 'typos' ? 'ALTA' : 'MEDIA';
+
+            return `**Entorno:** Producción
+
+**Pasos para reproducir:**
+1. Usuario ingresa a la aplicación ${platform}
+2. Navega por diferentes secciones que contienen los módulos afectados
+3. Se registran métricas con inconsistencias en el campo 'module'
+
+**Resultado actual:**
+Se envía el campo module con **${issues.length} inconsistencias** del tipo "${getCategoryTitle(category)}" que afectan a **${totalAffected} requests**:
+
+${examples}
+
+**Resultado esperado:**
+Unificar y normalizar el envío del campo 'module' a Metrics para:
+- ✅ Facilitar filtros y análisis en Grafana
+- ✅ Mantener consistencia entre plataformas (WEB, STV, iOS, Android)
+- ✅ Seguir estándares de nomenclatura (minúsculas, inglés, kebab-case)
+- ✅ Eliminar fragmentación de métricas
+
+**Impacto del Problema:**
+- 🔴 **${totalAffected} requests** afectados
+- 🔴 **Fragmentación** de métricas en Grafana
+- 🔴 **Dificultad** para análisis comparativo entre plataformas
+
+**Prioridad:** ${priority}
+
+**Fuentes:**
+- 📊 Flow Metrics Analyzer - Análisis automatizado
+- 📚 [Estructura unificada de logueo](https://tecocloud.atlassian.net/wiki/spaces/mpcwiki/pages/3639115980/Estructura+unificada+de+logueo)`;
+        }
+
+        function renderResults() {
+            document.getElementById('results').classList.remove('hidden');
+            renderSummary();
+            renderSheetResults();
+        }
+
+        function renderSummary() {
+            const summaryGrid = document.getElementById('summaryGrid');
+            summaryGrid.innerHTML = '';
+
+            Object.entries(analysisData).forEach(([sheetName, result]) => {
+                const summaryItem = document.createElement('div');
+                summaryItem.className = 'summary-item';
+
+                const statusIcon = result.isEmpty ? '⚠️' : 
+                                  result.hasModuleColumn ? '✅' : '❌';
+                const statusText = result.isEmpty ? 'Hoja vacía' : 
+                                  result.hasModuleColumn ? 'OK' : 'Sin columna MODULO';
+
+                summaryItem.innerHTML = `
+                    <div class="summary-title">${sheetName}</div>
+                    <div class="summary-platform">${result.platform} - ${result.type}</div>
+                    <div class="summary-stats">
+                        <div class="stat-line">${statusIcon} ${statusText}</div>
+                        ${result.hasModuleColumn ? `
+                            <div class="stat-line"><strong>${result.uniqueModules}</strong> módulos únicos</div>
+                            <div class="stat-line"><strong>${result.jiraTickets?.length || 0}</strong> tickets sugeridos</div>
+                        ` : ''}
+                    </div>
+                `;
+                summaryGrid.appendChild(summaryItem);
+            });
+        }
+
+        function renderSheetResults() {
+            const sheetResults = document.getElementById('sheetResults');
+            sheetResults.innerHTML = '';
+
+            Object.entries(analysisData).forEach(([sheetName, result]) => {
+                const sheetCard = document.createElement('div');
+                sheetCard.className = 'card';
+
+                if (result.isEmpty) {
+                    sheetCard.innerHTML = `
+                        <h3 class="text-lg font-bold mb-4">${sheetName} (${result.platform})</h3>
+                        <div class="alert alert-warning">
+                            <strong>⚠️ Falta de Datos</strong><br>
+                            ${result.message}
+                        </div>
+                    `;
+                } else if (!result.hasModuleColumn) {
+                    sheetCard.innerHTML = `
+                        <h3 class="text-lg font-bold mb-4">${sheetName} (${result.platform})</h3>
+                        <div class="alert alert-error">
+                            <strong>❌ Sin Columna MODULO</strong><br>
+                            ${result.message}
+                        </div>
+                    `;
+                } else {
+                    const totalInconsistencies = Object.values(result.inconsistencies)
+                        .reduce((sum, arr) => sum + arr.length, 0);
+
+                    sheetCard.innerHTML = `
+                        <h3 class="text-lg font-bold mb-4">${sheetName} (${result.platform})</h3>
+                        
+                        <!-- Statistics -->
+                        <div class="stats-grid mb-4">
+                            <div class="stat-card">
+                                <div class="stat-label">Total Módulos</div>
+                                <div class="stat-value">${result.totalModules}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Únicos</div>
+                                <div class="stat-value">${result.uniqueModules}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Tickets</div>
+                                <div class="stat-value">${result.jiraTickets?.length || 0}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Inconsistencias</div>
+                                <div class="stat-value" style="color: #dc2626;">${totalInconsistencies}</div>
+                            </div>
+                        </div>
+
+                        <!-- Top Modules -->
+                        <div class="mb-4">
+                            <h4 class="font-bold mb-2">Top 10 Módulos Más Frecuentes</h4>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Módulo</th>
+                                            <th>Ocurrencias</th>
+                                            <th>Porcentaje</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${Object.entries(result.moduleCounts)
+                                            .sort(([,a], [,b]) => b - a)
+                                            .slice(0, 10)
+                                            .map(([module, count]) => `
+                                                <tr>
+                                                    <td><code>${module}</code></td>
+                                                    <td>${count}</td>
+                                                    <td>${((count / result.totalModules) * 100).toFixed(1)}%</td>
+                                                </tr>
+                                            `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Inconsistencies -->
+                        ${renderInconsistencies(result.inconsistencies)}
+
+                        <!-- JIRA Tickets -->
+                        ${renderTickets(result.jiraTickets)}
+                    `;
+                }
+
+                sheetResults.appendChild(sheetCard);
+            });
+        }
+
+        function renderInconsistencies(inconsistencies) {
+            let html = '';
+            
+            Object.entries(inconsistencies).forEach(([category, issues]) => {
+                if (issues.length > 0) {
+                    html += `
+                        <div class="mb-4">
+                            <h4 class="font-bold mb-2">${getCategoryTitle(category)} (${issues.length} problemas)</h4>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Valor Actual</th>
+                                            <th>Sugerido</th>
+                                            <th>Ocurrencias</th>
+                                            <th>Razón</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${issues.map(issue => `
+                                            <tr>
+                                                <td><code>${issue.current}</code></td>
+                                                <td><code style="color: #059669;">${issue.suggested}</code></td>
+                                                <td>${issue.count}</td>
+                                                <td>${issue.reason}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+
+            return html;
+        }
+
+        function renderTickets(tickets) {
+            if (!tickets || tickets.length === 0) return '';
+
+            return `
+                <div>
+                    <h4 class="font-bold mb-2">Tickets JIRA Sugeridos (${tickets.length})</h4>
+                    ${tickets.map(ticket => `
+                        <div class="ticket">
+                            <div class="ticket-header">
+                                <div class="ticket-title">${ticket.title}</div>
+                                <span class="priority-badge priority-${ticket.priority.toLowerCase()}">${ticket.priority}</span>
+                            </div>
+                            <div class="ticket-meta">
+                                <strong>Component:</strong> ${ticket.component} | 
+                                <strong>Requests Afectados:</strong> ${ticket.affectedCount} | 
+                                <strong>Problemas:</strong> ${ticket.issuesCount}
+                            </div>
+                            <details>
+                                <summary style="cursor: pointer; color: #3b82f6;">Ver descripción completa</summary>
+                                <div class="ticket-description mt-2">${ticket.description}</div>
+                            </details>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Custom patterns functions
+        function addCustomPattern() {
+            const pattern = document.getElementById('newPatternText').value.trim();
+            const type = document.getElementById('newPatternType').value.trim();
+            const description = document.getElementById('newPatternDesc').value.trim();
+
+            if (pattern && type && description) {
+                customPatterns.push({ pattern, type, description });
+                renderPatternList();
+                
+                document.getElementById('newPatternText').value = '';
+                document.getElementById('newPatternType').value = '';
+                document.getElementById('newPatternDesc').value = '';
+            }
+        }
+
+        function removePattern(index) {
+            customPatterns.splice(index, 1);
+            renderPatternList();
+        }
+
+        function renderPatternList() {
+            const patternList = document.getElementById('patternList');
+            patternList.innerHTML = '';
+
+            customPatterns.forEach((pattern, index) => {
+                const patternItem = document.createElement('div');
+                patternItem.className = 'pattern-item';
+                patternItem.innerHTML = `
+                    <div class="pattern-info">
+                        <span class="font-medium">${pattern.pattern}</span>
+                        <span class="text-sm">${pattern.type}</span>
+                        <span class="text-sm">${pattern.description}</span>
+                    </div>
+                    <button class="btn btn-danger" onclick="removePattern(${index})">
+                        <svg class="icon" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                        </svg>
+                    </button>
+                `;
+                patternList.appendChild(patternItem);
+            });
+        }
+
+        // Export function
+        function exportResults() {
+            if (!analysisData) return;
+
+            const wb = XLSX.utils.book_new();
+
+            // Summary sheet
+            const summaryData = Object.entries(analysisData).map(([sheetName, result]) => ({
+                'Hoja': sheetName,
+                'Plataforma': result.platform,
+                'Tipo': result.type,
+                'Estado': result.isEmpty ? 'Vacía' : result.hasModuleColumn ? 'OK' : 'Sin MODULO',
+                'Módulos Únicos': result.uniqueModules || 0,
+                'Total Requests': result.totalModules || 0,
+                'Inconsistencias': result.inconsistencies ? 
+                    Object.values(result.inconsistencies).reduce((sum, arr) => sum + arr.length, 0) : 0,
+                'Tickets Sugeridos': result.jiraTickets?.length || 0
+            }));
+
+            const summaryWS = XLSX.utils.json_to_sheet(summaryData);
+            XLSX.utils.book_append_sheet(wb, summaryWS, 'Resumen');
+
+            // Inconsistencies sheet
+            const inconsistenciesData = [];
+            Object.entries(analysisData).forEach(([sheetName, result]) => {
+                if (result.inconsistencies) {
+                    Object.entries(result.inconsistencies).forEach(([category, issues]) => {
+                        issues.forEach(issue => {
+                            inconsistenciesData.push({
+                                'Hoja': sheetName,
+                                'Plataforma': result.platform,
+                                'Categoría': getCategoryTitle(category),
+                                'Valor Actual': issue.current,
+                                'Valor Sugerido': issue.suggested,
+                                'Ocurrencias': issue.count,
+                                'Razón': issue.reason,
+                                'Prioridad': category === 'critical' || category === 'typos' ? 'Alta' : 'Media'
+                            });
+                        });
+                    });
+                }
+            });
+
+            if (inconsistenciesData.length > 0) {
+                const inconsistenciesWS = XLSX.utils.json_to_sheet(inconsistenciesData);
+                XLSX.utils.book_append_sheet(wb, inconsistenciesWS, 'Inconsistencias');
+            }
+
+            // Tickets sheet
+            const ticketsData = [];
+            Object.entries(analysisData).forEach(([sheetName, result]) => {
+                if (result.jiraTickets) {
+                    result.jiraTickets.forEach((ticket, index) => {
+                        ticketsData.push({
+                            'ID': `${result.platform}-${index + 1}`,
+                            'Título': ticket.title,
+                            'Plataforma': ticket.component,
+                            'Prioridad': ticket.priority,
+                            'Categoría': ticket.category,
+                            'Requests Afectados': ticket.affectedCount,
+                            'Problemas': ticket.issuesCount,
+                            'Descripción': ticket.description.substring(0, 500) + '...'
+                        });
+                    });
+                }
+            });
+
+            if (ticketsData.length > 0) {
+                const ticketsWS = XLSX.utils.json_to_sheet(ticketsData);
+                XLSX.utils.book_append_sheet(wb, ticketsWS, 'Tickets_JIRA');
+            }
+
+            // Individual platform details
+            Object.entries(analysisData).forEach(([sheetName, result]) => {
+                if (!result.isEmpty && result.hasModuleColumn && result.moduleCounts) {
+                    const platformData = Object.entries(result.moduleCounts)
+                        .sort(([,a], [,b]) => b - a)
+                        .map(([module, count]) => ({
+                            'Módulo': module,
+                            'Ocurrencias': count,
+                            'Porcentaje': ((count / result.totalModules) * 100).toFixed(2) + '%',
+                            'Estado': 'Normal'
+                        }));
+
+                    const platformWS = XLSX.utils.json_to_sheet(platformData);
+                    XLSX.utils.book_append_sheet(wb, platformWS, `Detalle_${result.platform}`);
+                }
+            });
+
+            const fileName = `flow_metrics_analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        // Bulk tickets functions
+        function showBulkTickets() {
+            const allTickets = [];
+            Object.entries(analysisData).forEach(([sheetName, result]) => {
+                if (result.jiraTickets) {
+                    allTickets.push(...result.jiraTickets.map(ticket => ({
+                        ...ticket,
+                        sheetName,
+                        platform: result.platform
+                    })));
+                }
+            });
+
+            const bulkContent = allTickets.map((ticket, index) => 
+                `## Ticket ${index + 1}: ${ticket.title}
+
+**Plataforma:** ${ticket.platform}
+**Prioridad:** ${ticket.priority}
+**Component:** ${ticket.component}
+
+### Descripción:
+${ticket.description}
+
+---
+`).join('\n');
+
+            document.getElementById('totalTickets').textContent = allTickets.length;
+            document.getElementById('bulkTicketsContent').textContent = bulkContent;
+            document.getElementById('bulkModal').style.display = 'block';
+        }
+
+        function copyBulkTickets() {
+            const content = document.getElementById('bulkTicketsContent').textContent;
+            navigator.clipboard.writeText(content).then(() => {
+                alert('¡Tickets copiados al portapapeles!');
+            });
+        }
+
+        function closeBulkModal() {
+            document.getElementById('bulkModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('bulkModal');
+            if (event.target === modal) {
+                closeBulkModal();
+            }
+        }
+    </script>
+</body>
+</html>
